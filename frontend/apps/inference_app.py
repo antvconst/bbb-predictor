@@ -1,72 +1,73 @@
+import os
+import torch
 import streamlit as st
-import numpy as np
-import pandas as pd
+from torch_geometric.data import Batch
+
 from backend.utils import BBBPDataset
-from rdkit.Chem import AllChem as Chem
-from rdkit.Chem import Draw
+from backend import GNN
+from .utils import get_mol, draw_molecule
 
-def get_color(t):
-    ORANGE = np.array([1., 0.34, 0.2])
-    WHITE = np.array([1., 1., 1.])
-    return tuple(t*WHITE + (1-t)*ORANGE)
 
-def get_mol(smiles):
-    mol = Chem.MolFromSmiles(smiles)
-    for atom in mol.GetAtoms():
-        atom.SetChiralTag(Chem.rdchem.CHI_UNSPECIFIED)
-    return mol
+def select_model():
+    available_models = os.listdir('saves/bbbp_predictor')
+    selection = st.sidebar.selectbox('Model', available_models)
+    return os.path.join('saves/bbbp_predictor', selection)
 
-def draw_molecule(mol, W=None):
-    if W is not None:
-        num_atoms = len(W)
-        highlights = (W - W.min()) / (W.max() - W.min())
-        atom_highlights = {atom_id: [get_color(highlights[atom_id])] for atom_id in range(num_atoms)}
-        atom_radii = {atom_id: 0.5 for atom_id in range(num_atoms)}
-    else:
-        atom_highlights = {}
-        atom_radii = {}
-    drawer = Draw.MolDraw2DSVG(400, 125)
-    drawer.DrawMoleculeWithHighlights(mol, '', atom_highlights, {}, atom_radii, {})
-    drawer.FinishDrawing()
-    svg = drawer.GetDrawingText().replace('svg:', '').partition('\n')[-1]
-    return svg
+@st.cache(allow_output_mutation=True, show_spinner=True)
+def load_data():
+    dataset = BBBPDataset('data', 'all')
+    mols = {
+        data.name: data for data in dataset
+    }
+    return mols
+
+@st.cache(show_spinner=True)
+def load_model(save_dir):
+    model_path = os.path.join(save_dir, 'final_model.pt')
+    return GNN.load_from_checkpoint(model_path).eval()
+
+@st.cache(show_spinner=True)
+def run_inference(model_path, graph):
+    model = load_model(model_path)
+    with torch.no_grad():
+        batch = Batch.from_data_list([graph])
+        log_probs, attn_w = model.forward(batch, return_attn_w=True)
+    prob = log_probs.exp()[0, 1].item()
+    attn_w = attn_w.numpy()
+    return prob, attn_w
 
 def app():
     st.title('Blood-Brain Barrier Permeability')
     st.header('Inference')
 
-    with st.spinner():
-        test_data = BBBPDataset('data', 'test')
-        mols = {
-            data.name: (data.smiles, data.y.item()) for data in test_data
-        }
-        drug_names = list(mols.keys())
+    model_path = select_model()
+    mols = load_data()
 
-        option = st.selectbox(
-            'Select test molecule:',
-            drug_names
-        )
+    drug_names = list(mols.keys())
+    mol_name = st.selectbox(
+        'Select molecule:',
+        drug_names,
+        index=drug_names.index('cocaine')
+    )
+    graph = mols[mol_name]
 
-        mol = get_mol(mols[option][0])
+    prob, attn_w = run_inference(model_path, graph)
+    mol = get_mol(graph.smiles)
+    label = graph.y.item()
 
-        st.subheader('Molecule')
-        st.image(draw_molecule(mol), use_column_width=True)
+    st.subheader('Molecule')
+    st.image(draw_molecule(mol), use_column_width=True)
 
-        st.subheader('Prediction')
-        col1, col2 = st.beta_columns([2, 6])
-        with col1:
-            st.markdown(f"""
-                |                           |               |
-                |:-------------------------:|---------------|
-                | **Predicted probability** | {0.998989:.3} |
-                |    **Predicted class**    | {1}           |
-                |      **True class**       | {1}           |
-            """)
-        with col2:
-            num_atoms = len(mol.GetAtoms())
-            np.random.seed(1337)
-            attn_w = np.random.randn(num_atoms)
-            attn_w = np.exp(attn_w / 100) / np.sum(np.exp(attn_w / 100))
-            st.image(draw_molecule(mol, attn_w),
-                     use_column_width=True,
-                     caption='Attention weights')
+    st.subheader('Prediction')
+    col1, col2 = st.beta_columns([2, 6])
+    with col1:
+        st.markdown(f"""
+            |                           |               |
+            |:-------------------------:|---------------|
+            | **Predicted probability** | {prob:.3}     |
+            |      **Label**            | {label}       |
+        """)
+    with col2:
+        st.image(draw_molecule(mol, attn_w),
+                    use_column_width=True,
+                    caption='Attention weights')
