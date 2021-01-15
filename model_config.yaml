@@ -1,0 +1,12 @@
+data_root: data
+save_dir: saves
+batch_size: 100 
+emb_dim: 128 
+hidden_size: 256 
+n_conv: 5
+n_linear: 4
+dropout: 0.3
+lr: 1e-3
+es_patience: 30
+lr_factor: 0.3
+lr_patience: 5
