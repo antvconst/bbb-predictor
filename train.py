@@ -5,6 +5,7 @@ from torch_geometric.data import DataLoader
 from backend.utils import BBBPDataset
 from backend.model import GNN
 
+import os
 import argparse
 import yaml
 
@@ -42,3 +43,4 @@ if __name__ == '__main__':
                 train_dataloader=train_dataloader,
                 val_dataloaders=val_dataloader)
     trainer.test(test_dataloaders=test_dataloader)
+    trainer.save_checkpoint(os.path.join(csv_logger.log_dir, 'final_model.pt'))
