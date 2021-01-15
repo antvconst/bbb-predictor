@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 import torch_geometric.nn as gnn
 from sklearn import metrics
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
+from .utils import GlobalAttention
 
 
 class GNN(pl.LightningModule):
@@ -21,13 +22,22 @@ class GNN(pl.LightningModule):
         self.conv_layers = nn.ModuleList()
         for _ in range(n_conv):
             self.conv_layers.append(gnn.GCNConv(emb_dim, emb_dim))
+        
+        attn_gate_nn = nn.Sequential(
+            nn.Linear(emb_dim, 32),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(32, 1)
+        )
+        self.attn_pooling = GlobalAttention(attn_gate_nn)
+
         self.linear_layers = nn.ModuleList()
         self.linear_layers.append(nn.Linear(emb_dim, hidden_size))
         for _ in range(n_linear-1):
             self.linear_layers.append(nn.Linear(hidden_size, hidden_size))
         self.output_layer = nn.Linear(hidden_size, 2)
 
-    def forward(self, data):
+    def forward(self, data, return_attn_w=False):
         x = self.atom_enc(data.x)
         edge_index = data.edge_index
 
@@ -36,14 +46,18 @@ class GNN(pl.LightningModule):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
-        x = gnn.global_mean_pool(x, data.batch)
+        x, attn_w = self.attn_pooling(x, data.batch)
 
         for linear in self.linear_layers:
             x = linear(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.output_layer(x)
-        return F.log_softmax(x, dim=1)
+        log_probs = F.log_softmax(x, dim=1)
+
+        if return_attn_w:
+            return log_probs, attn_w
+        return log_probs
 
     def training_step(self, batch, batch_idx):
         y = batch.y.long().squeeze()
