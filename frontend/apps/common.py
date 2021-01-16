@@ -1,7 +1,9 @@
 import os
 import streamlit as st
+
 from backend import GNN
 from backend.utils import BBBPDataset
+
 
 def select_model():
     available_models = os.listdir('saves/bbbp_predictor')
