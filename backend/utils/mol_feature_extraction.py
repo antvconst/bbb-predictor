@@ -1,3 +1,5 @@
+# Loosely based on MoleculeNet dataset feature extraction
+
 import torch
 from rdkit import Chem
 from torch_geometric.utils import sort_edge_index
