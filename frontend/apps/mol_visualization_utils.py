@@ -8,11 +8,13 @@ def get_color(t):
     WHITE = np.array([1., 1., 1.])
     return tuple(t*ORANGE + (1-t)*WHITE)
 
+
 def get_mol(smiles):
     mol = Chem.MolFromSmiles(smiles)
     for atom in mol.GetAtoms():
         atom.SetChiralTag(Chem.rdchem.CHI_UNSPECIFIED)
     return mol
+
 
 def draw_molecule(mol, W=None):
     if W is not None:

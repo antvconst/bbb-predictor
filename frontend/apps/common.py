@@ -10,10 +10,12 @@ def select_model():
     selection = st.sidebar.selectbox('Model', available_models)
     return os.path.join('saves/bbbp_predictor', selection)
 
+
 @st.cache(show_spinner=True)
 def load_model(save_dir):
     model_path = os.path.join(save_dir, 'final_model.pt')
     return GNN.load_from_checkpoint(model_path).eval()
+
 
 @st.cache(allow_output_mutation=True, show_spinner=True)
 def load_data(part='all'):

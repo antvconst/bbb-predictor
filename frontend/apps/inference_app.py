@@ -17,6 +17,7 @@ def run_inference(model_path, graph):
     attn_w = attn_w.numpy()
     return prob, attn_w
 
+
 def app():
     st.title('Blood-Brain Barrier Permeability')
     st.header('Inference')

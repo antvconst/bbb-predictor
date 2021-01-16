@@ -60,6 +60,7 @@ def extract_molecular_features(mol):
 
     return edge_index, atom_attr
 
+
 def molecule_to_graph(smiles, label, name=''):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
