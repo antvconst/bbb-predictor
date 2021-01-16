@@ -3,7 +3,7 @@ import torch
 import streamlit as st
 from torch_geometric.data import Batch
 
-from .utils import get_mol, draw_molecule
+from .mol_visualization_utils import get_mol, draw_molecule
 from .common import select_model, load_model, load_data
 
 
