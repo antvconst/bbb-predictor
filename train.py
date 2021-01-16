@@ -10,11 +10,7 @@ import argparse
 import yaml
 
 if __name__ == '__main__':
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('config', type=str)
-    args = argparser.parse_args()
-
-    with open(args.config) as f:
+    with open('config.yaml') as f:
         config = yaml.safe_load(f)
 
     bbbp_train = BBBPDataset(config['data_root'], 'train')
