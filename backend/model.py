@@ -74,33 +74,45 @@ class GNN(pl.LightningModule):
         out = self.forward(batch)
         loss = F.nll_loss(out, y)
 
+        auroc = metrics.roc_auc_score(
+            y.cpu().numpy(),
+            out.detach().cpu().exp().numpy()[:, 1]
+        )
+
         self.log_dict({
-            'train_loss': loss
-        })
+            'train_loss': loss,
+            'train_auroc': auroc
+        }, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
+        y = batch.y.long().squeeze()
         with torch.no_grad():
             y_pred = self.forward(batch)
+            loss = F.nll_loss(y_pred, y)
+        
+        self.log_dict({
+            'val_loss': loss
+        }, prog_bar=True, logger=True)
         return y_pred.cpu(), batch.y.long().cpu()
         
     def validation_epoch_end(self, outputs):
-        y_pred = torch.cat([out[0] for out in outputs]).numpy()[:, 1]
+        y_pred = torch.cat([out[0] for out in outputs]).exp().numpy()[:, 1]
         y_true = torch.cat([out[1] for out in outputs]).numpy()
 
         self.log_dict({
             'val_auroc': metrics.roc_auc_score(y_true, y_pred)
-        }, prog_bar=True)
+        }, prog_bar=True, logger=True)
 
     test_step = validation_step
 
     def test_epoch_end(self, outputs):
-        y_pred = torch.cat([out[0] for out in outputs]).numpy()[:, 1]
+        y_pred = torch.cat([out[0] for out in outputs]).exp().numpy()[:, 1]
         y_true = torch.cat([out[1] for out in outputs]).numpy()
 
         self.log_dict({
             'test_auroc': metrics.roc_auc_score(y_true, y_pred)
-        }, prog_bar=True)
+        }, prog_bar=True, logger=True)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
