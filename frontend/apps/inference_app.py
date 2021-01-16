@@ -19,7 +19,7 @@ def run_inference(model_path, graph):
 
 
 def app():
-    st.title('Blood-Brain Barrier Permeability')
+    st.title('BBB Permeability Predictor')
     st.header('Inference')
 
     model_path = select_model()
