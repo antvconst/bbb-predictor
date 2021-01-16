@@ -38,10 +38,10 @@ def app():
     }, inplace=True)
     loss_df.rename(columns={
         'step': 'Step',
-        'variable': 'Split part',
+        'variable': 'Dataset',
         'value': 'Loss'
     }, inplace=True)
-    fig_loss = px.line(loss_df, x='Step', y='Loss', color='Split part', title='Loss')
+    fig_loss = px.line(loss_df, x='Step', y='Loss', color='Dataset', title='Loss')
     st.plotly_chart(fig_loss)
 
     auroc_df = log.melt(id_vars='step',
@@ -52,10 +52,10 @@ def app():
     }, inplace=True)
     auroc_df.rename(columns={
         'step': 'Step',
-        'variable': 'Split part',
+        'variable': 'Dataset',
         'value': 'AUROC'
     }, inplace=True)
-    fig_auroc = px.line(auroc_df, x='Step', y='AUROC', color='Split part', title='AUROC')
+    fig_auroc = px.line(auroc_df, x='Step', y='AUROC', color='Dataset', title='AUROC')
     st.plotly_chart(fig_auroc)
 
     st.subheader('Test Performance')

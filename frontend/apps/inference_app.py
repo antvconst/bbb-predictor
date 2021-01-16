@@ -32,7 +32,7 @@ def app():
     mol_name = st.selectbox(
         'Select molecule:',
         drug_names,
-        index=drug_names.index('cocaine')
+        index=drug_names.index('aspirin')
     )
     graph = mols[mol_name]
 
