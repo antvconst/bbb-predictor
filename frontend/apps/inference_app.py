@@ -3,28 +3,9 @@ import torch
 import streamlit as st
 from torch_geometric.data import Batch
 
-from backend.utils import BBBPDataset
-from backend import GNN
 from .utils import get_mol, draw_molecule
+from .common import select_model, load_model, load_data
 
-
-def select_model():
-    available_models = os.listdir('saves/bbbp_predictor')
-    selection = st.sidebar.selectbox('Model', available_models)
-    return os.path.join('saves/bbbp_predictor', selection)
-
-@st.cache(allow_output_mutation=True, show_spinner=True)
-def load_data():
-    dataset = BBBPDataset('data', 'all')
-    mols = {
-        data.name: data for data in dataset
-    }
-    return mols
-
-@st.cache(show_spinner=True)
-def load_model(save_dir):
-    model_path = os.path.join(save_dir, 'final_model.pt')
-    return GNN.load_from_checkpoint(model_path).eval()
 
 @st.cache(show_spinner=True)
 def run_inference(model_path, graph):
@@ -41,7 +22,10 @@ def app():
     st.header('Inference')
 
     model_path = select_model()
-    mols = load_data()
+    dataset = load_data()
+    mols = {
+        data.name: data for data in dataset
+    }
 
     drug_names = list(mols.keys())
     mol_name = st.selectbox(
@@ -64,8 +48,8 @@ def app():
         st.markdown(f"""
             |                           |               |
             |:-------------------------:|---------------|
-            | **Predicted probability** | {prob:.3}     |
-            |      **Label**            | {label}       |
+            | **Predicted probability** |   {prob:.2}   |
+            |         **Label**         |    {label}    |
         """)
     with col2:
         st.image(draw_molecule(mol, attn_w),
