@@ -59,6 +59,16 @@ class GNN(pl.LightningModule):
             return log_probs, attn_w
         return log_probs
 
+    def predict_on_dataset(self, dataset):
+        from torch_geometric.data import DataLoader
+        dataloader = DataLoader(dataset, batch_size=20)
+        probs = []
+        for batch in dataloader:
+            with torch.no_grad():
+                probs.append(self.forward(batch))
+        probs = torch.cat(probs).exp()[:, 1].numpy()  
+        return probs
+
     def training_step(self, batch, batch_idx):
         y = batch.y.long().squeeze()
         out = self.forward(batch)
